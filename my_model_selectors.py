@@ -28,7 +28,6 @@ class ModelSelector(object):
         self.random_state = random_state
         self.verbose = verbose
 
-
     def select(self):
         return self.base_model(self.max_n_components)
 
@@ -83,7 +82,7 @@ class SelectorBIC(ModelSelector):
         # implement model selection based on BIC scores
         best_score, best_model = float("inf"), None
 
-        for components in range(self.min_n_components, self.max_n_components+1):
+        for components in range(self.min_n_components, self.max_n_components + 1):
             try:
                 model = self.base_model(components)
                 logL = model.score(self.X, self.lengths)
@@ -112,8 +111,9 @@ class SelectorDIC(ModelSelector):
     '''
 
     models, values = {}, {}
+
     def build_dict(self, inst):
-        for n_components in range(inst.min_n_components, inst.max_n_components+1):
+        for n_components in range(inst.min_n_components, inst.max_n_components + 1):
             n_components_models, n_components_ml = {}, {}
 
             for word in inst.words.keys():
@@ -152,7 +152,7 @@ class SelectorDIC(ModelSelector):
             avg = np.mean([ml[word] for word in ml.keys() if word != self.this_word])
             dic = ml[self.this_word] - avg
 
-            #pick model
+            # pick model
             if dic > best_score:
                 best_score, best_model = dic, models[self.this_word]
 
@@ -163,7 +163,6 @@ class SelectorCV(ModelSelector):
     ''' select best model based on average log Likelihood of cross-validation folds
 
     '''
-
 
     n_splits = 3
 
@@ -177,13 +176,13 @@ class SelectorCV(ModelSelector):
             scores, n_splits = [], SelectorCV.n_splits
             model, logL = None, None
 
-            if(len(self.sequences) < n_splits):
+            if (len(self.sequences) < n_splits):
                 break
 
             split_method = KFold(random_state=self.random_state, n_splits=n_splits)
             for cv_train_idx, cv_test_idx in split_method.split(self.sequences):
                 X_train, lengths_train = combine_sequences(cv_train_idx, self.sequences)
-                X_test,  lengths_test  = combine_sequences(cv_test_idx, self.sequences)
+                X_test, lengths_test = combine_sequences(cv_test_idx, self.sequences)
                 try:
                     model = GaussianHMM(n_components=n_components, covariance_type="diag", n_iter=1000,
                                         random_state=inst.random_state, verbose=False).fit(X_train, lengths_train)
@@ -198,4 +197,3 @@ class SelectorCV(ModelSelector):
                 best_score, best_model = avg, model
 
         return best_model if best_model is not None else self.base_model(self.n_constant)
-
