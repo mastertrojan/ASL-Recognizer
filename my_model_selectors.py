@@ -112,25 +112,27 @@ class SelectorDIC(ModelSelector):
     '''
 
     models, values = {}, {}
-
-    def build_dict(cls, inst):
+    def build_dict(self, inst):
         for n_components in range(inst.min_n_components, inst.max_n_components+1):
             n_components_models, n_components_ml = {}, {}
 
             for word in inst.words.keys():
-                X, lengths = inst.hwords[word]
+                x, lengths = inst.hwords[word]
                 try:
-                    model = GaussianHMM(n_components=n_components, covariance_type="diag", n_iter=1000,
-                                        random_state=inst.random_state, verbose=False).fit(X, lengths)
-                    logL = model.score(X, lengths)
-                    n_components_models[word] = model
-                    n_components_ml[word] = logL
+                    self.build_model(inst, lengths, n_components, n_components_ml, n_components_models, word, x)
                 except Exception as e:
-                    print(e)
+                    # print(e)
                     continue
 
             SelectorDIC.models[n_components] = n_components_models
             SelectorDIC.values[n_components] = n_components_ml
+
+    def build_model(self, inst, lengths, n_components, n_components_ml, n_components_models, word, x):
+        model = GaussianHMM(n_components=n_components, covariance_type="diag", n_iter=1000,
+                            random_state=inst.random_state, verbose=False).fit(x, lengths)
+        logL = model.score(x, lengths)
+        n_components_models[word] = model
+        n_components_ml[word] = logL
 
     def select(self):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -144,12 +146,13 @@ class SelectorDIC(ModelSelector):
         for n_components in range(self.min_n_components, self.max_n_components + 1):
             models, ml = SelectorDIC.models[n_components], SelectorDIC.values[n_components]
 
-            if(self.this_word not in ml):
+            if self.this_word not in ml:
                 continue
 
             avg = np.mean([ml[word] for word in ml.keys() if word != self.this_word])
             dic = ml[self.this_word] - avg
 
+            #pick model
             if dic > best_score:
                 best_score, best_model = dic, models[self.this_word]
 
